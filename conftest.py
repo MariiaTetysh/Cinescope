@@ -1,5 +1,5 @@
 import requests
-from constants import BASE_URL, HEADERS, LOGIN_ENDPOINT, REGISTER_ENDPOINT
+from constants import BASE_URL_AUTH, REGISTER_ENDPOINT
 import pytest
 from utils.data_generator import DataGenerator
 from custom_requester.custom_requester import CustomRequester
@@ -47,7 +47,7 @@ def requester():
     Фикстура для создания экземпляра CustomRequester.
     """
     session = requests.Session()
-    return CustomRequester(session=session, base_url=BASE_URL)
+    return CustomRequester(session=session, base_url=BASE_URL_AUTH)
 
 @pytest.fixture(scope="session")
 def session():
@@ -63,4 +63,4 @@ def api_manager(session):
     """
     Фикстура для создания экземпляра ApiManager.
     """
-    return ApiManager(session, BASE_URL)
+    return ApiManager(session, BASE_URL_AUTH)

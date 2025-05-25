@@ -1,4 +1,3 @@
-from constants import LOGIN_ENDPOINT, REGISTER_ENDPOINT
 from api.api_manager import ApiManager
 
 
