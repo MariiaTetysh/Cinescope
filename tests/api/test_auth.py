@@ -42,7 +42,7 @@ class TestAuthAPI:
         )
     
     def test_register_and_login_with_incorrect_password(
-            self, requester, registered_user
+            self, api_manager, registered_user
         ):
         """
         Тест на регистрацию и авторизацию пользователя с некорректным паролем.
@@ -51,11 +51,8 @@ class TestAuthAPI:
             'email': registered_user['email'],
             'password': 'Password1'
         }
-        response = requester.send_request(
-            method='POST',
-            endpoint=LOGIN_ENDPOINT,
-            data=login_data,
-            expected_status=401
+        response = api_manager.auth_api.login_user(
+            login_data, expected_status=401
         )
         response_data = response.json()
         assert 'message' in response_data, (
@@ -63,7 +60,7 @@ class TestAuthAPI:
         )
     
     def test_register_and_login_with_incorrect_email(
-            self, requester, registered_user
+            self, api_manager, registered_user
         ):
         """
         Тест на регистрацию и авторизацию пользователя с некорректным email.
@@ -72,42 +69,33 @@ class TestAuthAPI:
             'email': 'testingbookings@gmail.com',
             'password': registered_user['password']
         }
-        response = requester.send_request(
-            method='POST',
-            endpoint=LOGIN_ENDPOINT,
-            data=login_data,
-            expected_status=401
+        response = api_manager.auth_api.login_user(
+            login_data, expected_status=401
         )
         response_data = response.json()
         assert 'message' in response_data, (
             'В ответе должно быть сообщение об ошибке'
         )
 
-    def test_login_with_empty_data(self, requester):
+    def test_login_with_empty_data(self, api_manager):
         """
         Тест на авторизацию пользователя с пустыми данными.
         """
         login_data = {}
-        response = requester.send_request(
-            method='POST',
-            endpoint=LOGIN_ENDPOINT,
-            data=login_data,
-            expected_status=401
+        response = api_manager.auth_api.login_user(
+            login_data, expected_status=401
         )
         response_data = response.json()
         assert 'message' in response_data, (
             'В ответе должно быть сообщение об ошибке'
         )
 
-    def test_register_twice_user(self, requester, registered_user):
+    def test_register_twice_user(self, api_manager, registered_user):
         """
         Тест на повторную регистрацию с тем же email.
         """
-        response = requester.send_request(
-            method='POST',
-            endpoint=REGISTER_ENDPOINT,
-            data=registered_user,
-            expected_status=409
+        response = api_manager.auth_api.register_user(
+            registered_user, expected_status=409
         )
         response_data = response.json()
         assert 'message' in response_data, (
