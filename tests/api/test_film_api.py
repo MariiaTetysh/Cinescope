@@ -1,4 +1,4 @@
-from ...constants import VALID_MOVIE_ID
+from constants import VALID_MOVIE_ID
 from api.api_manager import ApiManager
 
 

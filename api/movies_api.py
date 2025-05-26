@@ -1,4 +1,4 @@
-from ..constants import BASE_URL_MOVIES_API, MOVIES_ENDPOINT
+from constants import BASE_URL_MOVIES_API, MOVIES_ENDPOINT
 from custom_requester.custom_requester import CustomRequester
 
 

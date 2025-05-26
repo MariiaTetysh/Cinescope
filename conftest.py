@@ -1,7 +1,7 @@
 import pytest
 import requests
 
-from .constants import BASE_URL_AUTH, REGISTER_ENDPOINT
+from constants import BASE_URL_AUTH, REGISTER_ENDPOINT
 from api.api_manager import ApiManager
 from custom_requester.custom_requester import CustomRequester
 from utils.data_generator import DataGenerator
