@@ -1,5 +1,5 @@
-from constants import BASE_URL_AUTH, LOGIN_ENDPOINT, REGISTER_ENDPOINT
 from custom_requester.custom_requester import CustomRequester
+
 
 class UserAPI(CustomRequester):
     """
@@ -20,7 +20,7 @@ class UserAPI(CustomRequester):
             endpoint=f"/user/{user_id}",
             expected_status=expected_status
         )
-    
+
     def delete_user(self, user_id, expected_status=204):
         """
         Удаление пользователя.

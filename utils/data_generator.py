@@ -1,5 +1,6 @@
 import random
 import string
+
 from faker import Faker
 
 faker = Faker()
@@ -9,6 +10,9 @@ class DataGenerator:
 
     @staticmethod
     def generate_random_email():
+        """
+        Генерация случайного email.
+        """
         random_string = ''.join(
             random.choices(string.ascii_lowercase + string.digits, k=8)
         )
@@ -16,7 +20,31 @@ class DataGenerator:
 
     @staticmethod
     def generate_random_name():
+        """
+        Генерация случайного имени и фамилии.
+        """
         return f'{faker.first_name()} {faker.last_name()}'
+
+    @staticmethod
+    def generate_random_film_name():
+        """
+        Генерация случайного названия фильма.
+        """
+        themes = [
+            f"Return to {faker.city()}",
+            f"The last {faker.job().split()[0]}",
+            f"{faker.first_name()} and {faker.first_name()}",
+            f"Back to {faker.country()}",
+            f"{faker.color_name()} {faker.word(part_of_speech='noun')}"
+        ]
+        return random.choice(themes)
+
+    @staticmethod
+    def generate_random_price():
+        """
+        Генерация случайной цены фильма.
+        """
+        return faker.random_int(min=100, max=1000)
 
     @staticmethod
     def generate_random_password():

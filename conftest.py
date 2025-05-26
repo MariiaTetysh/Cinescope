@@ -1,9 +1,10 @@
-import requests
-from constants import BASE_URL_AUTH, REGISTER_ENDPOINT
 import pytest
-from utils.data_generator import DataGenerator
-from custom_requester.custom_requester import CustomRequester
+import requests
+
+from .constants import BASE_URL_AUTH, REGISTER_ENDPOINT
 from api.api_manager import ApiManager
+from custom_requester.custom_requester import CustomRequester
+from utils.data_generator import DataGenerator
 
 
 @pytest.fixture(scope='function')
@@ -27,7 +28,8 @@ def test_user():
 @pytest.fixture(scope="function")
 def registered_user(requester, test_user):
     """
-    Фикстура для регистрации и получения данных зарегистрированного пользователя.
+    Фикстура для регистрации и получения данных
+    зарегистрированного пользователя.
     """
     response = requester.send_request(
         method="POST",
@@ -49,6 +51,7 @@ def requester():
     session = requests.Session()
     return CustomRequester(session=session, base_url=BASE_URL_AUTH)
 
+
 @pytest.fixture(scope="session")
 def session():
     """
@@ -58,9 +61,59 @@ def session():
     yield http_session
     http_session.close()
 
+
 @pytest.fixture(scope="session")
 def api_manager(session):
     """
     Фикстура для создания экземпляра ApiManager.
     """
     return ApiManager(session, BASE_URL_AUTH)
+
+
+@pytest.fixture(scope='function')
+def test_movie():
+    """
+    Генерация случайного фильма для тестов.
+    """
+    random_film_name = DataGenerator.generate_random_film_name()
+    random_price = DataGenerator.generate_random_price()
+
+    return {
+        "name": random_film_name,
+        "imageUrl": "https://image.url",
+        "price": random_price,
+        "description": f"Film {random_film_name} description",
+        "location": "SPB",
+        "published": True,
+        "genreId": 1
+    }
+
+
+@pytest.fixture(scope='function')
+def test_movie_min_values():
+    """
+    Генерация случайного фильма для тестов
+    с минимальным набором обязательных полей.
+    """
+    random_film_name = DataGenerator.generate_random_film_name()
+    random_price = DataGenerator.generate_random_price()
+
+    return {
+        "name": random_film_name,
+        "price": random_price,
+        "description": f"Film {random_film_name} description",
+        "location": "SPB",
+        "published": True,
+        "genreId": 1
+    }
+
+
+@pytest.fixture(scope='function')
+def admin_user():
+    """
+    Фикстура пользователя с правами администратора для тестов.
+    """
+    return {
+        'email': 'test-admin@mail.com',
+        'password': 'KcLMmxkJMjBD1'
+    }

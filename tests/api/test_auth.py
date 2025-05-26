@@ -20,8 +20,9 @@ class TestAuthAPI:
             'Роль USER должна быть у пользователя'
         )
 
-
-    def test_register_and_login_user(self, api_manager, registered_user):
+    def test_register_and_login_user(
+        self, api_manager: ApiManager, registered_user
+    ):
         """
         Тест на регистрацию и авторизацию пользователя.
         """
@@ -39,10 +40,10 @@ class TestAuthAPI:
         assert 'accessToken' in response_data, (
             'Токен доступа пользователя отсутствует в ответе'
         )
-    
+
     def test_register_and_login_with_incorrect_password(
-            self, api_manager, registered_user
-        ):
+        self, api_manager: ApiManager, registered_user
+    ):
         """
         Тест на регистрацию и авторизацию пользователя с некорректным паролем.
         """
@@ -57,10 +58,10 @@ class TestAuthAPI:
         assert 'message' in response_data, (
             'В ответе должно быть сообщение об ошибке'
         )
-    
+
     def test_register_and_login_with_incorrect_email(
-            self, api_manager, registered_user
-        ):
+        self, api_manager: ApiManager, registered_user
+    ):
         """
         Тест на регистрацию и авторизацию пользователя с некорректным email.
         """
@@ -76,7 +77,7 @@ class TestAuthAPI:
             'В ответе должно быть сообщение об ошибке'
         )
 
-    def test_login_with_empty_data(self, api_manager):
+    def test_login_with_empty_data(self, api_manager: ApiManager):
         """
         Тест на авторизацию пользователя с пустыми данными.
         """
@@ -89,7 +90,9 @@ class TestAuthAPI:
             'В ответе должно быть сообщение об ошибке'
         )
 
-    def test_register_twice_user(self, api_manager, registered_user):
+    def test_register_twice_user(
+        self, api_manager: ApiManager, registered_user
+    ):
         """
         Тест на повторную регистрацию с тем же email.
         """
