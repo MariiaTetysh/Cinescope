@@ -1,4 +1,6 @@
+import pytest
 from api.api_manager import ApiManager
+from resources.user_creds import SuperAdminCreds, AdminCreds
 
 
 class TestAuthAPI:
@@ -20,26 +22,36 @@ class TestAuthAPI:
             'Роль USER должна быть у пользователя'
         )
 
-    def test_register_and_login_user(
-        self, api_manager: ApiManager, registered_user
-    ):
-        """
-        Тест на регистрацию и авторизацию пользователя.
-        """
+    @pytest.mark.parametrize("email, password, expected_status", [
+        (f"{SuperAdminCreds.USERNAME}", f"{SuperAdminCreds.PASSWORD}", 201),
+        (f"{AdminCreds.USERNAME}", f"{AdminCreds.PASSWORD}", 201),
+        ("test_login1@email.com", "asdqwe123Q!", 401),  # Сервис не может обработать логин по незареганному юзеру
+        ("", "password", 401),
+        ], ids=[
+            "SuperAdmin login", "Admin login",
+            "Invalid user", "Empty username"
+        ])
+    def test_login(self, email, password, expected_status, api_manager):
         login_data = {
-            'email': registered_user['email'],
-            'password': registered_user['password']
+            "email": email,
+            "password": password
         }
         response = api_manager.auth_api.login_user(
-            login_data, expected_status=200
+            login_data=login_data, expected_status=expected_status
         )
         response_data = response.json()
-        assert response_data['user']['email'] == login_data['email'], (
-            'Email не совпадает'
-        )
-        assert 'accessToken' in response_data, (
-            'Токен доступа пользователя отсутствует в ответе'
-        )
+        if response.status_code == 201:
+            assert response_data['user']['email'] == login_data['email'], (
+                'Email не совпадает'
+            )
+            assert 'accessToken' in response_data, (
+                'Токен доступа пользователя отсутствует в ответе'
+            )
+        else:
+            assert 'message' in response_data, (
+                'В ответе должно быть сообщение об ошибке'
+            )
+
 
     def test_register_and_login_with_incorrect_password(
         self, api_manager: ApiManager, registered_user

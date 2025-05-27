@@ -1,14 +1,13 @@
 from constants import VALID_MOVIE_ID
-from api.api_manager import ApiManager
 
 
 class TestMoviesAPI:
 
-    def test_get_movie_posters_info(self, api_manager: ApiManager):
+    def test_get_movie_posters_info(self, common_user):
         """
         Тест на получение полной информации об афишах фильмов.
         """
-        response = api_manager.movie_api.get_movie_posters_info()
+        response = common_user.api.movie_api.get_movie_posters_info()
         response_data = response.json()
         assert 'movies' in response_data, (
             'Список фильмов отсутствует в ответе'
@@ -26,11 +25,11 @@ class TestMoviesAPI:
             '"movies" должен быть списком'
         )
 
-    def test_pagination_movie_posters(self, api_manager: ApiManager):
+    def test_pagination_movie_posters(self, common_user):
         """
         Тест на наличие пагинации на странице информации об афишах фильмов.
         """
-        response = api_manager.movie_api.get_movie_posters_info()
+        response = common_user.api.movie_api.get_movie_posters_info()
         response_data = response.json()
         assert 'page' in response_data, 'Поле "page" отсутствует'
         assert 'pageSize' in response_data, 'Поле "pageSize" отсутствует'
@@ -54,11 +53,11 @@ class TestMoviesAPI:
             '"pageCount" должно быть больше или равно 1'
         )
 
-    def test_info_types_movie_posters(self, api_manager: ApiManager):
+    def test_info_types_movie_posters(self, common_user):
         """
         Тест на проверку типов данных и структуры информации о фильмах.
         """
-        response = api_manager.movie_api.get_movie_posters_info()
+        response = common_user.api.movie_api.get_movie_posters_info()
         response_data = response.json()
         first_movie = response_data['movies'][0]
         assert 'movies' in response_data, 'Список фильмов отсутствует в ответе'
@@ -114,29 +113,31 @@ class TestMoviesAPI:
         assert first_movie['price'] > 0, 'Цена должна быть положительной'
         assert 1 <= first_movie['rating'] <= 5, 'Рейтинг должен быть от 1 до 5'
 
-    def test_get_movie_posters_info_with_filter(self, api_manager: ApiManager):
+    def test_get_movie_posters_info_with_filter(self, common_user):
         """
         Тест на получение информации об афишах фильмов с фильтром "genreId".
         """
         params = {'genreId': 1}
-        response = api_manager.movie_api.get_movie_posters_info(params=params)
-        response_data = response.json()
-        assert response_data['movies'][0]['genreId'] == params['genreId'], (
-            'Неверный genreId для фильма '
+        response = common_user.api.movie_api.get_movie_posters_info(
+            params=params
         )
+        response_data = response.json()
         assert 'count' in response_data, (
             'Количество фильмов отсутствует в ответе'
         )
         assert response_data['count'] >= 0, (
             'Количество фильмов с genreId = 1 должно быть больше или равно 0'
         )
+        for i in range(len(response_data['movies'])):    
+            assert response_data['movies'][i]['genreId'] == params['genreId'], (
+                'Неверный genreId для фильма '
+            )
 
-    def test_add_movie(self, api_manager: ApiManager, test_movie, admin_user):
+    def test_add_movie(self, super_admin, test_movie):
         """
         Тест на создание фильма с валидными данными.
         """
-        auth_response = api_manager.auth_api.authenticate(admin_user)
-        response = api_manager.movie_api.add_movie(test_movie)
+        response = super_admin.api.movie_api.add_movie(test_movie)
         response_data = response.json()
         movie_id = response_data['id']
 
@@ -152,7 +153,7 @@ class TestMoviesAPI:
             'Фильм должен быть опубликован после создания'
         )
 
-        response = api_manager.movie_api.get_movies_info(movie_id)
+        response = super_admin.api.movie_api.get_movies_info(movie_id)
         response_data = response.json()
         assert response_data['location'] == test_movie['location'], (
             'Заданное местоположение не совпадает'
@@ -162,13 +163,12 @@ class TestMoviesAPI:
         )
 
     def test_add_movie_with_min_values(
-        self, api_manager: ApiManager, test_movie_min_values, admin_user
+        self, super_admin, test_movie_min_values
     ):
         """
         Тест на создание фильма с минимальным набором обязательных полей.
         """
-        auth_response = api_manager.auth_api.authenticate(admin_user)
-        response = api_manager.movie_api.add_movie(test_movie_min_values)
+        response = super_admin.api.movie_api.add_movie(test_movie_min_values)
         response_data = response.json()
         movie_id = response_data['id']
 
@@ -187,7 +187,7 @@ class TestMoviesAPI:
             'Фильм должен быть опубликован после создания'
         )
 
-        response = api_manager.movie_api.get_movies_info(movie_id)
+        response = super_admin.api.movie_api.get_movies_info(movie_id)
         response_data = response.json()
         assert response_data['imageUrl'] is None, (
             'Заданная ссылка фотографии не совпадает'
@@ -204,18 +204,17 @@ class TestMoviesAPI:
         )
 
     def test_delete_movies_info(
-        self, api_manager: ApiManager, admin_user, test_movie
+        self, super_admin, test_movie
     ):
         """
         Тест на удаление фильма с валидным ID.
         """
-        auth_response = api_manager.auth_api.authenticate(admin_user)
-        response = api_manager.movie_api.add_movie(test_movie)
+        response = super_admin.api.movie_api.add_movie(test_movie)
         movie_id = response.json()['id']
-        response = api_manager.movie_api.delete_movies_info(movie_id)
+        response = super_admin.api.movie_api.delete_movies_info(movie_id)
         response_data = response.json()
 
-        response = api_manager.movie_api.get_movies_info(
+        response = super_admin.api.movie_api.get_movies_info(
             movie_id, expected_status=404
         )
         response_data = response.json()
@@ -229,11 +228,11 @@ class TestMoviesAPI:
             'Нет подтверждения удаления фильма'
         )
 
-    def test_get_movies_info(self, api_manager: ApiManager):
+    def test_get_movies_info(self, common_user):
         """
         Тест на получение информации о фильме с валидным Id.
         """
-        response = api_manager.movie_api.get_movies_info(
+        response = common_user.api.movie_api.get_movies_info(
             movie_id=VALID_MOVIE_ID
         )
         response_data = response.json()
@@ -247,19 +246,16 @@ class TestMoviesAPI:
             'Цена фильма отсутствует в ответе'
         )
 
-    def test_partial_update_movies_info(
-        self, test_movie, admin_user, api_manager: ApiManager
-    ):
+    def test_partial_update_movies_info(self, test_movie, super_admin):
         """
         Тест на частичное изменение информации о фильме.
         """
         updated_data = {
             "price": 1500
         }
-        auth_response = api_manager.auth_api.authenticate(admin_user)
-        response = api_manager.movie_api.add_movie(test_movie)
+        response = super_admin.api.movie_api.add_movie(test_movie)
         movie_id = response.json()['id']
-        response = api_manager.movie_api.partial_update_movies_info(
+        response = super_admin.api.movie_api.partial_update_movies_info(
             movie_id, updated_data
         )
         response_data = response.json()
@@ -268,4 +264,20 @@ class TestMoviesAPI:
         )
         assert response_data['name'] == test_movie['name'], (
             'Заданное название изменилось'
+        )
+
+    def test_add_movie_with_invalid_role(self, common_user, test_movie):
+        """
+        Тест на создание фильма с валидными данными и невалидной ролью - USER.
+        """
+        response = common_user.api.movie_api.add_movie(
+            test_movie, expected_status=403
+        )
+        response_data = response.json()
+
+        assert 'message' in response_data, (
+            'Поле "message" отсутствует в ответе'
+        )
+        assert response_data['message'] == 'Forbidden resource', (
+            'Значение поля "message" не равняется "Forbidden resource"'
         )

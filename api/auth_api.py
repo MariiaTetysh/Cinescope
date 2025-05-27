@@ -19,7 +19,7 @@ class AuthAPI(CustomRequester):
             expected_status=expected_status
         )
 
-    def login_user(self, login_data, expected_status=200):
+    def login_user(self, login_data, expected_status=201):
         """
         Авторизация пользователя.
         :param login_data: Данные для логина.
@@ -32,10 +32,24 @@ class AuthAPI(CustomRequester):
             expected_status=expected_status
         )
 
-    def authenticate(self, user_creds):
+    # def authenticate(self, user_creds):  #для использования до ролевой модели
+    #     login_data = {
+    #         "email": user_creds['email'],
+    #         "password": user_creds['password']
+    #     }
+
+    #     response = self.login_user(login_data).json()
+    #     if "accessToken" not in response:
+    #         raise KeyError("token is missing")
+
+    #     token = response["accessToken"]
+    #     self._update_session_headers(Authorization=f"Bearer {token}")
+    #     return response
+
+    def authenticate(self, user_creds): #для использования ролевой модели и параметризации
         login_data = {
-            "email": user_creds['email'],
-            "password": user_creds['password']
+            "email": user_creds[0],
+            "password": user_creds[1]
         }
 
         response = self.login_user(login_data).json()
