@@ -4,6 +4,7 @@ from models.model import User, UserCreation
 
 class TestUser:
 
+    @pytest.mark.smoke
     def test_create_user(self, super_admin, creation_user_data):
         """
         Тест на создание юзера c валидацей типов данных.

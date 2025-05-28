@@ -2,35 +2,14 @@ from constants import VALID_MOVIE_ID
 import pytest
 from datetime import datetime
 
+from models.model import MovieCreation, Movie
+
 
 class TestMoviesAPI:
 
     @pytest.fixture
     def user(self, request):
         return request.getfixturevalue(request.param)
-
-    @pytest.mark.slow
-    def test_get_movie_posters_info(self, common_user):
-        """
-        Тест на получение полной информации об афишах фильмов.
-        """
-        response = common_user.api.movie_api.get_movie_posters_info()
-        response_data = response.json()
-        assert 'movies' in response_data, (
-            'Список фильмов отсутствует в ответе'
-        )
-        assert 'count' in response_data, (
-            'Количество афиш фильмов отсутствует в ответе'
-        )
-        assert response_data['count'] > 0, (
-            'Количество афиш фильмов должно быть больше 0'
-        )
-        assert isinstance(response_data['count'], int), (
-            '"count" должен быть целым числом'
-        )
-        assert isinstance(response_data['movies'], list), (
-            '"movies" должен быть списком'
-        )
 
     @pytest.mark.slow
     def test_pagination_movie_posters(self, common_user):
@@ -62,65 +41,30 @@ class TestMoviesAPI:
         )
 
     @pytest.mark.slow
-    def test_info_types_movie_posters(self, common_user):
+    def test_info_and_types_movie_posters(self, common_user):
         """
-        Тест на проверку типов данных и структуры информации о фильмах.
+        Тест на получение полной информации об афишах фильмов и
+        проверку типов данных и структуры информации о фильмах.
         """
-        response = common_user.api.movie_api.get_movie_posters_info()
-        response_data = response.json()
-        first_movie = response_data['movies'][0]
-        assert 'movies' in response_data, 'Список фильмов отсутствует в ответе'
-        assert isinstance(response_data['movies'], list), (
+        response = common_user.api.movie_api.get_movie_posters_info().json()
+        assert 'movies' in response, (
+            'Список фильмов отсутствует в ответе'
+        )
+        assert 'count' in response, (
+            'Количество афиш фильмов отсутствует в ответе'
+        )
+        assert response['count'] > 0, (
+            'Количество афиш фильмов должно быть больше 0'
+        )
+        assert isinstance(response['count'], int), (
+            '"count" должен быть целым числом'
+        )
+        assert isinstance(response['movies'], list), (
             '"movies" должен быть списком'
         )
-        assert 'id' in first_movie, 'ID фильма отсутствует'
-        assert 'name' in first_movie, 'Название фильма отсутствует'
-        assert 'price' in first_movie, 'Цена фильма отсутствует'
-        assert 'description' in first_movie, 'Описание фильма отсутствует'
-        assert 'imageUrl' in first_movie, 'URL изображения отсутствует'
-        assert 'location' in first_movie, 'Местоположение фильма отсутствует'
-        assert 'published' in first_movie, 'Поле "published" отсутствует'
-        assert 'genreId' in first_movie, 'ID жанра отсутствует'
-        assert 'genre' in first_movie, 'Информация о жанре отсутствует'
-        assert 'createdAt' in first_movie, 'Дата создания отсутствует'
-        assert 'rating' in first_movie, 'Рейтинг отсутствует'
-
-        assert isinstance(first_movie['id'], int), (
-            'ID фильма должно быть целым числом'
-        )
-        assert isinstance(first_movie['name'], str), (
-            'Название фильма должно быть строкой'
-        )
-        assert isinstance(first_movie['price'], int), (
-            'Цена фильма должна быть целым числом'
-        )
-        assert isinstance(first_movie['description'], str), (
-            'Описание фильма должно быть строкой'
-        )
-        assert isinstance(first_movie['imageUrl'], str), (
-            'URL изображения должно быть строкой'
-        )
-        assert isinstance(first_movie['location'], str), (
-            'Местоположение фильма должно быть строкой'
-        )
-        assert isinstance(first_movie['published'], bool), (
-            'Поле "published" должно быть булевым'
-        )
-        assert isinstance(first_movie['genreId'], int), (
-            'ID жанра должно быть целым числом'
-        )
-        assert isinstance(first_movie['genre'], dict), (
-            'Информация о жанре должна быть словарем'
-        )
-        assert isinstance(first_movie['createdAt'], str), (
-            'Дата создания должна быть строкой'
-        )
-        assert isinstance(first_movie['rating'], int), (
-            'Рейтинг должен быть целым числом'
-        )
-
-        assert first_movie['price'] > 0, 'Цена должна быть положительной'
-        assert 1 <= first_movie['rating'] <= 5, 'Рейтинг должен быть от 1 до 5'
+        for movie in response['movies']:
+            Movie(**movie)
+        
 
     @pytest.mark.parametrize('param, value, expected_status', [
         ('genreId', 1, 200),
