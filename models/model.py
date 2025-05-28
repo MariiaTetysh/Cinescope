@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from enum import Enum
 from typing import Optional
 
@@ -17,17 +17,26 @@ class MovieLocation(str, Enum):
 class UserRegistration(BaseModel):
     email: str
     fullName: str
-    password: str
-    passwordRepeat: str
+    password: str = Field(min_length=8)
+    password: str = Field(min_length=8)
     roles: list[str]
 
 
 class UserCreation(BaseModel):
     fullName: str
     email: str
-    password: str
+    password: str = Field(min_length=8)
     banned: Optional[bool] = Field(default=False)
     verified: Optional[bool] = Field(default=True)
+
+    @field_validator("email")
+    def check_email(cls, value: str) -> str:
+        """
+        Проверяем, есть ли знак "@" в email.
+        """
+        if '@' not in value:
+            raise ValueError('Email должен содержать в себе знак "@"')
+        return value
 
 class User(BaseModel):
     id: str = Field(..., description='Идентификатор пользователя')

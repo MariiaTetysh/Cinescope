@@ -1,5 +1,6 @@
 import random
 import string
+import time
 
 from faker import Faker
 
@@ -37,7 +38,8 @@ class DataGenerator:
             f"Back to {faker.country()}",
             f"{faker.color_name()} {faker.word(part_of_speech='noun')}"
         ]
-        return random.choice(themes)
+        timestamp = int(time.time() * 1000)
+        return f'{random.choice(themes)} {timestamp}'
 
     @staticmethod
     def generate_random_price():
