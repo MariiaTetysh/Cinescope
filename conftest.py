@@ -1,13 +1,14 @@
 import pytest
 import requests
 
-from constants import BASE_URL_AUTH, USER_BASE_URL, REGISTER_ENDPOINT
+from constants import BASE_URL_AUTH, REGISTER_ENDPOINT, USER_BASE_URL
+from entities.user import User
+from enums.roles import Roles
+from resources.user_creds import AdminCreds, SuperAdminCreds
+
 from api.api_manager import ApiManager
 from custom_requester.custom_requester import CustomRequester
 from utils.data_generator import DataGenerator
-from entities.user import User
-from resources.user_creds import SuperAdminCreds, AdminCreds
-from enums.roles import Roles
 
 
 @pytest.fixture(scope='function')

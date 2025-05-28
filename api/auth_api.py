@@ -1,4 +1,5 @@
 from constants import BASE_URL_AUTH, LOGIN_ENDPOINT, REGISTER_ENDPOINT
+
 from custom_requester.custom_requester import CustomRequester
 
 

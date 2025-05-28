@@ -1,7 +1,9 @@
 import pytest
+
+from models.model import User, UserRegistration
+from resources.user_creds import AdminCreds, SuperAdminCreds
+
 from api.api_manager import ApiManager
-from resources.user_creds import SuperAdminCreds, AdminCreds
-from models.model import UserRegistration, User
 
 
 class TestAuthAPI:

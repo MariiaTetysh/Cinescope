@@ -1,5 +1,7 @@
-from custom_requester.custom_requester import CustomRequester
 from constants import USER_BASE_URL
+
+from custom_requester.custom_requester import CustomRequester
+
 
 class UserAPI(CustomRequester):
     """

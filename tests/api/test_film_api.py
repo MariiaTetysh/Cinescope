@@ -1,8 +1,9 @@
-from constants import VALID_MOVIE_ID
-import pytest
 from datetime import datetime
 
-from models.model import MovieCreation, Movie
+import pytest
+
+from constants import VALID_MOVIE_ID
+from models.model import Movie, MovieCreation
 
 
 class TestMoviesAPI:
