@@ -1,8 +1,15 @@
 from constants import VALID_MOVIE_ID
+import pytest
+from datetime import datetime
 
 
 class TestMoviesAPI:
 
+    @pytest.fixture
+    def user(self, request):
+        return request.getfixturevalue(request.param)
+
+    @pytest.mark.slow
     def test_get_movie_posters_info(self, common_user):
         """
         Тест на получение полной информации об афишах фильмов.
@@ -25,6 +32,7 @@ class TestMoviesAPI:
             '"movies" должен быть списком'
         )
 
+    @pytest.mark.slow
     def test_pagination_movie_posters(self, common_user):
         """
         Тест на наличие пагинации на странице информации об афишах фильмов.
@@ -53,6 +61,7 @@ class TestMoviesAPI:
             '"pageCount" должно быть больше или равно 1'
         )
 
+    @pytest.mark.slow
     def test_info_types_movie_posters(self, common_user):
         """
         Тест на проверку типов данных и структуры информации о фильмах.
@@ -113,25 +122,129 @@ class TestMoviesAPI:
         assert first_movie['price'] > 0, 'Цена должна быть положительной'
         assert 1 <= first_movie['rating'] <= 5, 'Рейтинг должен быть от 1 до 5'
 
-    def test_get_movie_posters_info_with_filter(self, common_user):
+    @pytest.mark.parametrize('param, value, expected_status', [
+        ('genreId', 1, 200),
+        ('genreId', 5, 200),
+        ('locations', 'SPB', 200),
+        ('locations', 'MSK', 200),
+        ('page', 5, 200),
+        ('pageSize', 5, 200),
+        ('minPrice', 500, 200),
+        ('maxPrice', 500, 200),
+        # ('published', 'true', 200),
+        # ('published', 'false', 200),
+
+    ],
+        ids=[
+        'genreId=1', 'genreId=5', 'location=SPB', 'location=MSK', 'page=5',
+        'pageSize=5', 'minPrice=1500', 'maxPrice=500',
+        # 'published=True', 'published=False'
+    ])
+    def test_get_movie_posters_info_with_filter(
+        self, param, value, common_user, expected_status
+    ):
         """
-        Тест на получение информации об афишах фильмов с фильтром "genreId".
+        Тест на получение информации об афишах фильмов с одинарными фильтрами.
         """
-        params = {'genreId': 1}
+        params = {param: value}
         response = common_user.api.movie_api.get_movie_posters_info(
-            params=params
+            params=params, expected_status=expected_status
         )
         response_data = response.json()
         assert 'count' in response_data, (
             'Количество фильмов отсутствует в ответе'
         )
         assert response_data['count'] >= 0, (
-            'Количество фильмов с genreId = 1 должно быть больше или равно 0'
+            'Количество фильмов c учетом фильтра должно быть больше или равно 0'
         )
-        for i in range(len(response_data['movies'])):    
-            assert response_data['movies'][i]['genreId'] == params['genreId'], (
-                'Неверный genreId для фильма '
+        if param == 'page' or param == 'pageSize':
+            assert response_data[param] == params[param], (
+                f'Неверный {param} для фильма '
             )
+        for i in range(len(response_data['movies'])):
+            if param == 'genreId' or param == 'published':
+                assert response_data['movies'][i][param] == params[param], (
+                    f'Неверный {param} для фильма '
+                )
+            if param == 'locations':
+                assert response_data['movies'][i]['location'] == params[param], (
+                    f'Неверный {param} для фильма '
+                )
+            if param == 'minPrice':
+                assert response_data['movies'][i]['price'] >= params[param], (
+                    f'Неверный {param} для фильма '
+                )
+            if param == 'maxPrice':
+                assert response_data['movies'][i]['price'] <= params[param], (
+                    f'Неверный {param} для фильма '
+                )
+
+    @pytest.mark.parametrize(
+        'pageSize, page, minPrice, maxPrice, '
+        'locations, published, genreId, createdAt, expected_status', [
+            (None, None, 100, 500, 'MSK', None, 1, None, 200),
+            (15, 1, 500, 1000, 'SPB', 1, 2, 'asc', 200),
+            (None, None, None, None, None, None, None, None, 200)
+        ],
+        ids=[
+            'composite_filter',
+            'composite_filter_with_all_data',
+            'composite_filter_with_no_data'
+        ])
+    def test_get_movie_posters_info_with_composite_filter(
+        self, pageSize, page, minPrice, maxPrice, locations, published,
+        genreId, createdAt, common_user, expected_status
+    ):
+        """
+        Тест на получение информации об афишах фильмов с составными фильтрами.
+        """
+        params = {
+            'pageSize': pageSize,
+            'page': page,
+            'minPrice': minPrice,
+            'maxPrice': maxPrice,
+            'locations': locations,
+            'published': published,
+            'genreId': genreId,
+            'createdAt': createdAt,
+        }
+        response = common_user.api.movie_api.get_movie_posters_info(
+            params=params, expected_status=expected_status
+        )
+        response_data = response.json()
+
+        if pageSize is not None:
+            assert response_data['pageSize'] == pageSize
+        if page is not None:
+            assert response_data['page'] == page
+
+        for movie in response_data['movies']:
+            if minPrice is not None:
+                assert movie['price'] >= minPrice
+            if maxPrice is not None:
+                assert movie['price'] <= maxPrice
+            if locations is not None:
+                assert movie['location'] == locations
+            if published is not None:
+                assert movie['published'] == published
+            if genreId is not None:
+                assert movie['genreId'] == genreId
+            if createdAt is not None:
+                dates = [
+                    movie['createdAt'] for movie in response_data['movies']
+                ]
+                parsed_dates = [datetime.fromisoformat(
+                    date.replace('Z', '+00:00')
+                ) for date in dates]
+
+                if createdAt == 'asc':
+                    assert parsed_dates == sorted(parsed_dates), (
+                        "Даты не отсортированы по возрастанию!"
+                    )
+                elif createdAt == 'desc':
+                    assert parsed_dates == sorted(
+                        parsed_dates, reverse=True
+                    ), ("Даты не отсортированы по убыванию!")
 
     def test_add_movie(self, super_admin, test_movie):
         """
@@ -203,31 +316,47 @@ class TestMoviesAPI:
             'Заданное описание не совпадает'
         )
 
+    @pytest.mark.parametrize(
+        'user, expected_status_delete, expected_status_get', [
+            (('super_admin'), 200, 404),
+            (('admin'), 200, 404),
+            (('common_user'), 403, 200),
+        ],
+        indirect=['user'],
+        ids=[
+            "SuperAdmin", "Admin", "Common User"
+        ]
+    )
     def test_delete_movies_info(
-        self, super_admin, test_movie
+        self, user, test_movie, super_admin,
+        expected_status_delete, expected_status_get
     ):
         """
         Тест на удаление фильма с валидным ID.
         """
         response = super_admin.api.movie_api.add_movie(test_movie)
         movie_id = response.json()['id']
-        response = super_admin.api.movie_api.delete_movies_info(movie_id)
-        response_data = response.json()
-
-        response = super_admin.api.movie_api.get_movies_info(
-            movie_id, expected_status=404
+        response = user.api.movie_api.delete_movies_info(
+            movie_id, expected_status_delete
         )
         response_data = response.json()
-        assert 'message' in response_data, (
-            'Сообщения об ошибке нет в ответе'
-        )
-        assert response_data['message'] == 'Фильм не найден', (
-            'Нет подтверждения удаления фильма'
-        )
-        assert response_data['error'] == 'Not Found', (
-            'Нет подтверждения удаления фильма'
-        )
 
+        response = user.api.movie_api.get_movies_info(
+            movie_id, expected_status_get
+        )
+        response_data = response.json()
+        if response.status_code == 404:
+            assert 'message' in response_data, (
+                'Сообщения об ошибке нет в ответе'
+            )
+            assert response_data['message'] == 'Фильм не найден', (
+                'Нет подтверждения удаления фильма'
+            )
+            assert response_data['error'] == 'Not Found', (
+                'Нет подтверждения удаления фильма'
+            )
+
+    @pytest.mark.slow
     def test_get_movies_info(self, common_user):
         """
         Тест на получение информации о фильме с валидным Id.
