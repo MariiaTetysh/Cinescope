@@ -11,6 +11,7 @@ Jinja2==3.1.6
 MarkupSafe==3.0.2
 packaging==25.0
 pluggy==1.6.0
+psycopg2==2.9.10
 pydantic==2.11.5
 pydantic_core==2.33.2
 pytest==8.3.5
@@ -20,6 +21,7 @@ pytest-rerunfailures==15.1
 pytest-xdist==3.6.1
 python-dotenv==1.1.0
 requests==2.32.3
+SQLAlchemy==2.0.41
 tomli==2.2.1
 typing-inspection==0.4.1
 typing_extensions==4.13.2

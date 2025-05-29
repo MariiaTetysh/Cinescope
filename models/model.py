@@ -40,6 +40,7 @@ class UserCreation(BaseModel):
             raise ValueError('Email должен содержать в себе знак "@"')
         return value
 
+
 class User(BaseModel):
     id: str = Field(..., description='Идентификатор пользователя')
     email: str
@@ -67,13 +68,14 @@ class TestUser(BaseModel):
         if "password" in info.data and value != info.data["password"]:
             raise ValueError("Пароли не совпадают")
         return value
-    
+
     # Добавляем кастомный JSON-сериализатор для Enum
     class Config:
         json_encoders = {
             Roles: lambda v: v.value  # Преобразуем Enum в строку
         }
-    
+
+
 class RegisterUserResponse(BaseModel):
     id: str
     email: str = Field(
@@ -94,11 +96,10 @@ class RegisterUserResponse(BaseModel):
     def validate_created_at(cls, value: str) -> str:
         # Валидатор для проверки формата даты и времени (ISO 8601).
         try:
-            datetime.fromisoformat(value)
+            datetime.fromisoformat(value.replace('Z', '+00:00'))
         except ValueError:
             raise ValueError("Некорректный формат даты и времени")
         return value
-
 
 
 class MovieCreation(BaseModel):
@@ -125,3 +126,4 @@ class Movie(BaseModel):
     rating: float = Field(
         ..., ge=0, le=5, description="Рейтинг должен быть от 0 до 5"
     )
+
