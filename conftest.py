@@ -4,6 +4,7 @@ import requests
 from constants import BASE_URL_AUTH, REGISTER_ENDPOINT, USER_BASE_URL
 from entities.user import User
 from enums.roles import Roles
+from models.model import TestUser
 from resources.user_creds import AdminCreds, SuperAdminCreds
 
 from api.api_manager import ApiManager
@@ -12,6 +13,7 @@ from utils.data_generator import DataGenerator
 
 
 @pytest.fixture(scope='function')
+# def test_user() -> TestUser:
 def test_user():
     """
     Генерация случайного пользователя для тестов.
@@ -26,7 +28,14 @@ def test_user():
         "password": random_password,
         "passwordRepeat": random_password,
         "roles": [Roles.USER.value]
-    }
+        }
+    # return TestUser(
+    #     email=random_email,
+    #     fullName=random_name,
+    #     password=random_password,
+    #     passwordRepeat=random_password,
+    #     roles=[Roles.USER.value]
+    # )
 
 
 @pytest.fixture(scope="function")

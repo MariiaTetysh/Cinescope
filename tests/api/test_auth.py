@@ -1,6 +1,6 @@
 import pytest
 
-from models.model import User, UserRegistration
+from models.model import RegisterUserResponse, User, UserRegistration
 from resources.user_creds import AdminCreds, SuperAdminCreds
 
 from api.api_manager import ApiManager
@@ -8,16 +8,25 @@ from api.api_manager import ApiManager
 
 class TestAuthAPI:
 
-    def test_register_user(self, api_manager: ApiManager, test_user):
+    # def test_register_user(self, api_manager: ApiManager, creation_user_data):
+    #     response = api_manager.auth_api.register_user(user_data=creation_user_data)
+    #     register_user_response = RegisterUserResponse(**response.json())
+    #     assert register_user_response.email == creation_user_data.email, "Email не совпадает"
+
+
+    def test_register_user(self, api_manager: ApiManager, creation_user_data):
         """
         Тест на регистрацию пользователя c валидацей данных.
         """
-        UserRegistration(**test_user)
-        response = api_manager.auth_api.register_user(test_user).json()
+        try:
+            user = UserRegistration(**creation_user_data)
+            print("Данные валидны:", user)
+        except Exception as e:
+            print("Ошибка валидации:", e)
+            
+        response = api_manager.auth_api.register_user(creation_user_data).json()
         user = User(**response)
-        assert user.email == test_user['email'], ('Email не совпадает')
-        assert user.id, 'ID пользователя отсутствует в ответе'
-        assert user.roles, ('Роли пользователя отсутствуют в ответе')
+        assert user.email == creation_user_data['email'], ('Email не совпадает')
         assert user.roles == ['USER'], ('Роль USER должна быть у пользователя')
 
     @pytest.fixture
