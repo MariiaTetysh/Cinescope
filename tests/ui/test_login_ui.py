@@ -1,6 +1,5 @@
 
 import time
-
 from playwright.sync_api import sync_playwright
 
 from models.page_object_models import CinescopLoginPage
@@ -31,3 +30,4 @@ def test_login_by_ui(registered_user):
 
         # Закрываем браузер
         browser.close()
+
