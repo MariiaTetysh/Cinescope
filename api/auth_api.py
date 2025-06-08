@@ -1,6 +1,6 @@
 from constants import BASE_URL_AUTH, LOGIN_ENDPOINT, REGISTER_ENDPOINT
-
 from custom_requester.custom_requester import CustomRequester
+
 
 class AuthAPI(CustomRequester):
     def __init__(self, session):
@@ -19,7 +19,7 @@ class AuthAPI(CustomRequester):
             expected_status=expected_status
         )
 
-    def login_user(self, login_data, expected_status=200):
+    def login_user(self, login_data, expected_status=201):
         """
         Авторизация пользователя.
         :param login_data: Данные для логина.
@@ -46,7 +46,8 @@ class AuthAPI(CustomRequester):
     #     self._update_session_headers(Authorization=f"Bearer {token}")
     #     return response
 
-    def authenticate(self, user_creds):  # для использования ролевой модели и параметризации
+    def authenticate(self, user_creds):
+        # для использования ролевой модели и параметризации
         login_data = {
             "email": user_creds[0],
             "password": user_creds[1]
@@ -59,4 +60,3 @@ class AuthAPI(CustomRequester):
         token = response["accessToken"]
         self._update_session_headers(Authorization=f"Bearer {token}")
         return response
-

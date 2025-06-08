@@ -10,6 +10,26 @@ faker = Faker()
 class DataGenerator:
 
     @staticmethod
+    def generate_random_str(n):
+        """
+        Генерация случайной строки с длиной n.
+        """
+        random_string = ''.join(
+            random.choices(string.ascii_lowercase + string.digits, k=n)
+        )
+        return random_string
+
+    @staticmethod
+    def generate_random_int(n):
+        """
+        Генерация случайного числа с длиной n.
+        """
+        random_string = ''.join(
+            random.choices(string.digits, k=n)
+        )
+        return int(random_string)
+
+    @staticmethod
     def generate_random_email():
         """
         Генерация случайного email.

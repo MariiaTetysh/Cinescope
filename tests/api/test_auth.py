@@ -1,46 +1,37 @@
+import datetime
+
+import allure
 import pytest
-
-from models.model import RegisterUserResponse, User, UserRegistration
-from resources.user_creds import AdminCreds, SuperAdminCreds
+from pytest_check import check
 
 from api.api_manager import ApiManager
-
-from api.api_manager import ApiManager
-from models.model import TestUser, RegisterUserResponse
 from db_requester.models import UserDBModel
+from models.model import (RegisterUserResponse, Roles, TestUser, User,
+                          UserRegistration)
+from resources.user_creds import AdminCreds, SuperAdminCreds
 
 
 class TestAuthAPI:
 
-    # def test_register_user(self, api_manager: ApiManager, creation_user_data):
-    #     response = api_manager.auth_api.register_user(user_data=creation_user_data)
-    #     register_user_response = RegisterUserResponse(**response.json())
-    #     assert register_user_response.email == creation_user_data.email, "Email не совпадает"
-
-
-    def test_register_user(self, api_manager: ApiManager, creation_user_data):
-        """
-        Тест на регистрацию пользователя c валидацей данных.
-        """
-        try:
-            user = UserRegistration(**creation_user_data)
-            print("Данные валидны:", user)
-        except Exception as e:
-            print("Ошибка валидации:", e)
-            
-        response = api_manager.auth_api.register_user(creation_user_data).json()
-        user = User(**response)
-        assert user.email == creation_user_data['email'], ('Email не совпадает')
-        assert user.roles == ['USER'], ('Роль USER должна быть у пользователя')
+    def test_register_user(
+            self, api_manager: ApiManager, creation_user_data_with_pydantic
+    ):
+        response = api_manager.auth_api.register_user(
+            user_data=creation_user_data_with_pydantic
+        )
+        register_user_response = RegisterUserResponse(**response.json())
+        assert register_user_response.email == (
+            creation_user_data_with_pydantic.email
+        ), "Email не совпадает"
 
     @pytest.fixture
     def user(self, request):
         return request.getfixturevalue(request.param)
 
     @pytest.mark.parametrize("user, expected_status", [
-        (('super_admin'), 200),
-        (('admin'), 200),
-        (('common_user'), 200),
+        (('super_admin'), 201),
+        (('admin'), 201),
+        (('common_user'), 201),
         # ("test_login1@email.com", "asdqwe123Q!", 401),  # Сервис не может обработать логин по незареганному юзеру
         # ("", "password", 401),
     ],
@@ -58,7 +49,7 @@ class TestAuthAPI:
             login_data=login_data, expected_status=expected_status
         )
         response_data = response.json()
-        if response.status_code == 200:
+        if response.status_code == 201:
             assert response_data['user']['email'] == login_data['email'], (
                 'Email не совпадает'
             )
@@ -77,7 +68,7 @@ class TestAuthAPI:
         Тест на регистрацию и авторизацию пользователя с некорректным паролем.
         """
         login_data = {
-            'email': registered_user['email'],
+            'email': registered_user.email,
             'password': 'Password1'
         }
         response = api_manager.auth_api.login_user(
@@ -96,7 +87,7 @@ class TestAuthAPI:
         """
         login_data = {
             'email': 'testingbookings@gmail.com',
-            'password': registered_user['password']
+            'password': registered_user.password
         }
         response = api_manager.auth_api.login_user(
             login_data, expected_status=401
@@ -134,9 +125,9 @@ class TestAuthAPI:
         )
 
     def test_register_user_db_session(
-            self, api_manager: ApiManager,
-            test_user: TestUser, db_session
-        ):
+        self, api_manager: ApiManager,
+        test_user: TestUser, db_session
+    ):
         """
         Тест на регистрацию пользователя с проверкой в базе данных.
         """
@@ -156,3 +147,66 @@ class TestAuthAPI:
         # можем осуществить проверку всех полей в базе данных например Email
         assert user_from_db.email == test_user.email, "Email не совпадает"
         # assert user_from_db['email'] == test_user.email, "Email не совпадает"
+
+    def test_register_user_mock(self, api_manager: ApiManager, test_user: TestUser, mocker):
+        # Ответ полученный из мок сервиса
+        mock_response = RegisterUserResponse(  # Фиктивный ответ
+            id="id",
+            email="email@email.com",
+            fullName="fullName",
+            verified=True,
+            banned=False,
+            roles=[Roles.SUPER_ADMIN],
+            createdAt=str(datetime.datetime.now())
+        )
+
+        # Мокаем метод register_user в auth_api
+        mocker.patch.object(
+            api_manager.auth_api,  # Объект, который нужно замокать
+            'register_user',       # Метод, который нужно замокать
+            return_value=mock_response  # Фиктивный ответ
+        )
+        # Вызываем метод, который должен быть замокан
+        register_user_response = api_manager.auth_api.register_user(test_user)
+        # Проверяем, что ответ соответствует ожидаемому
+        assert register_user_response.email == mock_response.email, "Email не совпадает"
+
+    @allure.title("Тест регистрации пользователя с помощью Mock")
+    @allure.severity(allure.severity_level.MINOR)
+    @allure.label("qa_name", "Ivan Petrovich")
+    def test_register_user_mock_with_allure(self, api_manager: ApiManager, test_user: TestUser, mocker):
+        with allure.step(" Мокаем метод register_user в auth_api"):
+            mock_response = RegisterUserResponse(  # Фиктивный ответ
+                id="id",
+                email="email@email.com",
+                fullName="fullName",
+                verified=True,
+                banned=False,
+                roles=[Roles.SUPER_ADMIN],
+                createdAt=str(datetime.datetime.now())
+            )
+
+            mocker.patch.object(
+                api_manager.auth_api,  # Объект, который нужно замокать
+                'register_user',       # Метод, который нужно замокать
+                return_value=mock_response  # Фиктивный ответ
+            )
+
+        with allure.step("Вызываем метод, который должен быть замокан"):
+            register_user_response = api_manager.auth_api.register_user(
+                test_user)
+
+        with allure.step("Проверяем, что ответ соответствует ожидаемому"):
+            # обратите внимание на вложенность allure.step
+            with allure.step("Проверка поля персональных данных"):
+                with check:
+                    # Строка ниже выдаст исклющение и но выполнение теста продолжится
+                    check.equal(register_user_response.fullName,
+                                "INCORRECT_NAME", "НЕСОВПАДЕНИЕ fullName")
+                    check.equal(register_user_response.email,
+                                mock_response.email)
+
+            with allure.step("Проверка поля banned"):
+                with check("Проверка поля banned"):  # можно использовать вместо allure.step
+                    check.equal(register_user_response.banned,
+                                mock_response.banned)

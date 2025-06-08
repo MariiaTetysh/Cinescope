@@ -1,5 +1,4 @@
 from constants import BASE_URL_MOVIES_API, MOVIES_ENDPOINT
-
 from custom_requester.custom_requester import CustomRequester
 
 
@@ -20,7 +19,7 @@ class MoviesAPI(CustomRequester):
             params=params
         )
 
-    def add_movie(self, movie_data, expected_status=201):
+    def add_movie(self, movie_data, expected_status=201, headers=None):
         """
         Создание фильма.
         :param movie_data: Данные фильма.
@@ -30,10 +29,11 @@ class MoviesAPI(CustomRequester):
             method="POST",
             endpoint=MOVIES_ENDPOINT,
             data=movie_data,
-            expected_status=expected_status
+            expected_status=expected_status,
+            headers=headers
         )
 
-    def get_movies_info(self, movie_id, expected_status=200):
+    def get_movies_info(self, movie_id, expected_status=201):
         """
         Получение информации о фильме.
         :param movie_id: ID фильма.
@@ -45,7 +45,7 @@ class MoviesAPI(CustomRequester):
             expected_status=expected_status
         )
 
-    def delete_movies_info(self, movie_id, expected_status=200):
+    def delete_movies_info(self, movie_id, expected_status=200, token=None):
         """
         Удаление фильма.
         :param movie_id: ID фильма.
@@ -54,7 +54,8 @@ class MoviesAPI(CustomRequester):
         return self.send_request(
             method="DELETE",
             endpoint=f'{MOVIES_ENDPOINT}/{movie_id}',
-            expected_status=expected_status
+            expected_status=expected_status,
+            token=token
         )
 
     def partial_update_movies_info(

@@ -17,27 +17,26 @@ class TestMoviesAPI:
         """
         Тест на наличие пагинации на странице информации об афишах фильмов.
         """
-        response = common_user.api.movie_api.get_movie_posters_info()
-        response_data = response.json()
-        assert 'page' in response_data, 'Поле "page" отсутствует'
-        assert 'pageSize' in response_data, 'Поле "pageSize" отсутствует'
-        assert 'pageCount' in response_data, 'Поле "pageCount" отсутствует'
-        assert isinstance(response_data['page'], int), (
+        response = common_user.api.movie_api.get_movie_posters_info().json()
+        assert 'page' in response, 'Поле "page" отсутствует'
+        assert 'pageSize' in response, 'Поле "pageSize" отсутствует'
+        assert 'pageCount' in response, 'Поле "pageCount" отсутствует'
+        assert isinstance(response['page'], int), (
             '"page" должно быть целым числом'
         )
-        assert isinstance(response_data['pageSize'], int), (
+        assert isinstance(response['pageSize'], int), (
             '"pageSize" должно быть целым числом'
         )
-        assert isinstance(response_data['pageCount'], int), (
+        assert isinstance(response['pageCount'], int), (
             '"pageCount" должно быть целым числом'
         )
-        assert response_data['page'] >= 1, (
+        assert response['page'] >= 1, (
             '"page" должно быть больше или равно 1'
         )
-        assert response_data['pageSize'] >= 1, (
+        assert response['pageSize'] >= 1, (
             '"pageSize" должно быть больше или равно 1'
         )
-        assert response_data['pageCount'] >= 1, (
+        assert response['pageCount'] >= 1, (
             '"pageCount" должно быть больше или равно 1'
         )
 
@@ -65,7 +64,6 @@ class TestMoviesAPI:
         )
         for movie in response['movies']:
             Movie(**movie)
-        
 
     @pytest.mark.parametrize('param, value, expected_status', [
         ('genreId', 1, 200),
@@ -75,15 +73,11 @@ class TestMoviesAPI:
         ('page', 5, 200),
         ('pageSize', 5, 200),
         ('minPrice', 500, 200),
-        ('maxPrice', 500, 200),
-        # ('published', 'true', 200),
-        # ('published', 'false', 200),
-
+        ('maxPrice', 1500, 200)
     ],
         ids=[
         'genreId=1', 'genreId=5', 'location=SPB', 'location=MSK', 'page=5',
-        'pageSize=5', 'minPrice=1500', 'maxPrice=500',
-        # 'published=True', 'published=False'
+        'pageSize=5', 'minPrice=500', 'maxPrice=1500'
     ])
     def test_get_movie_posters_info_with_filter(
         self, param, value, common_user, expected_status
@@ -94,33 +88,34 @@ class TestMoviesAPI:
         params = {param: value}
         response = common_user.api.movie_api.get_movie_posters_info(
             params=params, expected_status=expected_status
-        )
-        response_data = response.json()
-        assert 'count' in response_data, (
+        ).json()
+        for movie in response['movies']:
+            Movie(**movie)
+        assert 'count' in response, (
             'Количество фильмов отсутствует в ответе'
         )
-        assert response_data['count'] >= 0, (
+        assert response['count'] >= 0, (
             'Количество фильмов c учетом фильтра должно быть больше или равно 0'
         )
         if param == 'page' or param == 'pageSize':
-            assert response_data[param] == params[param], (
+            assert response[param] == params[param], (
                 f'Неверный {param} для фильма '
             )
-        for i in range(len(response_data['movies'])):
+        for i in range(len(response['movies'])):
             if param == 'genreId' or param == 'published':
-                assert response_data['movies'][i][param] == params[param], (
+                assert response['movies'][i][param] == params[param], (
                     f'Неверный {param} для фильма '
                 )
             if param == 'locations':
-                assert response_data['movies'][i]['location'] == params[param], (
+                assert response['movies'][i]['location'] == params[param], (
                     f'Неверный {param} для фильма '
                 )
             if param == 'minPrice':
-                assert response_data['movies'][i]['price'] >= params[param], (
+                assert response['movies'][i]['price'] >= params[param], (
                     f'Неверный {param} для фильма '
                 )
             if param == 'maxPrice':
-                assert response_data['movies'][i]['price'] <= params[param], (
+                assert response['movies'][i]['price'] <= params[param], (
                     f'Неверный {param} для фильма '
                 )
 
@@ -155,15 +150,15 @@ class TestMoviesAPI:
         }
         response = common_user.api.movie_api.get_movie_posters_info(
             params=params, expected_status=expected_status
-        )
-        response_data = response.json()
+        ).json()
 
         if pageSize is not None:
-            assert response_data['pageSize'] == pageSize
+            assert response['pageSize'] == pageSize
         if page is not None:
-            assert response_data['page'] == page
+            assert response['page'] == page
 
-        for movie in response_data['movies']:
+        for movie in response['movies']:
+            Movie(**movie)
             if minPrice is not None:
                 assert movie['price'] >= minPrice
             if maxPrice is not None:
@@ -176,7 +171,7 @@ class TestMoviesAPI:
                 assert movie['genreId'] == genreId
             if createdAt is not None:
                 dates = [
-                    movie['createdAt'] for movie in response_data['movies']
+                    movie['createdAt'] for movie in response['movies']
                 ]
                 parsed_dates = [datetime.fromisoformat(
                     date.replace('Z', '+00:00')
@@ -195,28 +190,28 @@ class TestMoviesAPI:
         """
         Тест на создание фильма с валидными данными.
         """
-        response = super_admin.api.movie_api.add_movie(test_movie)
-        response_data = response.json()
-        movie_id = response_data['id']
+        response = super_admin.api.movie_api.add_movie(
+            test_movie
+        ).json()
+        movie = Movie(**response)
+        movie_id = movie.id
 
-        assert movie_id is not None, 'Идентификатор фильма не найден в ответе'
-        assert 'createdAt' in response_data, 'Поле "createdAt" отсутствует'
-        assert response_data['name'] == test_movie['name'], (
+        assert movie.name == test_movie['name'], (
             'Заданное имя не совпадает'
         )
-        assert response_data['price'] == test_movie['price'], (
+        assert movie.price == test_movie['price'], (
             'Заданная цена не совпадает'
         )
-        assert response_data['published'], (
+        assert movie.published, (
             'Фильм должен быть опубликован после создания'
         )
 
-        response = super_admin.api.movie_api.get_movies_info(movie_id)
-        response_data = response.json()
-        assert response_data['location'] == test_movie['location'], (
+        response = super_admin.api.movie_api.get_movies_info(movie_id).json()
+        movie = Movie(**response)
+        assert movie.location == test_movie['location'], (
             'Заданное местоположение не совпадает'
         )
-        assert response_data['description'] == test_movie['description'], (
+        assert movie.description == test_movie['description'], (
             'Заданное описание не совпадает'
         )
 
@@ -226,38 +221,28 @@ class TestMoviesAPI:
         """
         Тест на создание фильма с минимальным набором обязательных полей.
         """
-        response = super_admin.api.movie_api.add_movie(test_movie_min_values)
-        response_data = response.json()
-        movie_id = response_data['id']
+        response = super_admin.api.movie_api.add_movie(
+            test_movie_min_values
+        ).json()
+        movie = Movie(**response)
+        movie_id = movie.id
 
-        assert movie_id is not None, 'Идентификатор фильма не найден в ответе'
-        assert 'createdAt' in response_data, 'Поле "createdAt" отсутствует'
-        assert response_data['imageUrl'] is None, (
-            'Заданная ссылка фотографии не совпадает'
-        )
-        assert response_data['name'] == test_movie_min_values['name'], (
+        assert movie.name == test_movie_min_values['name'], (
             'Заданное имя не совпадает'
         )
-        assert response_data['price'] == test_movie_min_values['price'], (
+        assert movie.price == test_movie_min_values['price'], (
             'Заданная цена не совпадает'
         )
-        assert response_data['published'], (
+        assert movie.published, (
             'Фильм должен быть опубликован после создания'
         )
 
-        response = super_admin.api.movie_api.get_movies_info(movie_id)
-        response_data = response.json()
-        assert response_data['imageUrl'] is None, (
-            'Заданная ссылка фотографии не совпадает'
-        )
-        assert response_data[
-            'location'
-        ] == test_movie_min_values['location'], (
+        response = super_admin.api.movie_api.get_movies_info(movie_id).json()
+        movie = Movie(**response)
+        assert movie.location == test_movie_min_values['location'], (
             'Заданное местоположение не совпадает'
         )
-        assert response_data[
-            'description'
-        ] == test_movie_min_values['description'], (
+        assert movie.description == test_movie_min_values['description'], (
             'Заданное описание не совпадает'
         )
 

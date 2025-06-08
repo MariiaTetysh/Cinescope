@@ -1,26 +1,30 @@
 import datetime
+import time
+import uuid
 
 import pytest
 import requests
-
+from playwright.sync_api import sync_playwright
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from api.api_manager import ApiManager
 from constants import BASE_URL_AUTH, REGISTER_ENDPOINT, USER_BASE_URL
+from custom_requester.custom_requester import CustomRequester
+from db_requester.models import UserDBModel
 from entities.user import User
 from enums.roles import Roles
 from models.model import TestUser
-from db_requester.models import UserDBModel
+from resources.db_creds import DBCreds
 from resources.user_creds import AdminCreds, SuperAdminCreds
-
-from api.api_manager import ApiManager
-from custom_requester.custom_requester import CustomRequester
 from utils.data_generator import DataGenerator
+
+DEFAULT_UI_TIMEOUT = 130000
 
 
 @pytest.fixture(scope='function')
-# def test_user() -> TestUser:
-def test_user():
+def test_user() -> TestUser:
+    # def test_user():
     """
     Генерация случайного пользователя для тестов.
     """
@@ -28,20 +32,20 @@ def test_user():
     random_name = DataGenerator.generate_random_name()
     random_password = DataGenerator.generate_random_password()
 
-    return {
-        "email": random_email,
-        "fullName": random_name,
-        "password": random_password,
-        "passwordRepeat": random_password,
-        "roles": [Roles.USER.value]
-    }
-    # return TestUser(
-    #     email=random_email,
-    #     fullName=random_name,
-    #     password=random_password,
-    #     passwordRepeat=random_password,
-    #     roles=[Roles.USER.value]
-    # )
+    # return {
+    #     "email": random_email,
+    #     "fullName": random_name,
+    #     "password": random_password,
+    #     "passwordRepeat": random_password,
+    #     "roles": [Roles.USER.value]
+    # }
+    return TestUser(
+        email=random_email,
+        fullName=random_name,
+        password=random_password,
+        passwordRepeat=random_password,
+        roles=[Roles.USER.value]
+    )
 
 
 @pytest.fixture(scope="function")
@@ -58,7 +62,7 @@ def registered_user(requester, test_user):
     )
     response_data = response.json()
     registered_user = test_user.copy()
-    registered_user["id"] = response_data["id"]
+    # registered_user["id"] = response_data["id"]
     return registered_user
 
 
@@ -164,6 +168,23 @@ def creation_user_data(test_user):
     return updated_data
 
 
+@pytest.fixture(scope="function")
+def creation_user_data_with_pydantic():
+    random_email = DataGenerator.generate_random_email()
+    random_name = DataGenerator.generate_random_name()
+    random_password = DataGenerator.generate_random_password()
+
+    return TestUser(
+        email=random_email,
+        fullName=random_name,
+        password=random_password,
+        passwordRepeat=random_password,
+        roles=[Roles.USER.value],
+        verified=True,
+        banned=False
+    )
+
+
 @pytest.fixture
 def super_admin(user_session):
     new_session = user_session()
@@ -176,6 +197,13 @@ def super_admin(user_session):
 
     super_admin.api.auth_api.authenticate(super_admin.creds)
     return super_admin
+
+
+@pytest.fixture
+def super_admin_token(super_admin):
+    response = super_admin.api.auth_api.authenticate(super_admin.creds)
+    token = response["accessToken"]
+    return token
 
 
 @pytest.fixture
@@ -193,30 +221,23 @@ def admin(user_session):
 
 
 @pytest.fixture
-def common_user(user_session, super_admin, creation_user_data):
+def common_user(user_session, super_admin, creation_user_data_with_pydantic):
     new_session = user_session()
 
     common_user = User(
-        creation_user_data['email'],
-        creation_user_data['password'],
+        creation_user_data_with_pydantic.email,
+        creation_user_data_with_pydantic.password,
         [Roles.USER.value],
         new_session)
 
-    super_admin.api.user_api.create_user(creation_user_data)
+    super_admin.api.user_api.create_user(creation_user_data_with_pydantic)
     common_user.api.auth_api.authenticate(common_user.creds)
     return common_user
 
 
-# Оставим эти данные тут для наглядности. но не стоит хранить креды в гитлбе. они должны быть заданы через env
-HOST = "92.255.111.76"
-PORT = 31200
-DATABASE_NAME = "db_movies"
-USERNAME = "postgres"
-PASSWORD = "AmwFrtnR2"
-
 # Создаем движок (engine) для подключения к базе данных
 engine = create_engine(
-    f"postgresql+psycopg2://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DATABASE_NAME}")
+    f"postgresql+psycopg2://{DBCreds.DB_USER}:{DBCreds.DB_PASSWORD}@{DBCreds.DB_HOST}:{DBCreds.DB_PORT}/{DBCreds.DB_NAME}")
 SessionLocal = sessionmaker(
     autocommit=False, autoflush=False, bind=engine)  # Создаем фабрику сессий
 
@@ -244,7 +265,7 @@ def db_session():
 
     # Создаем тестовые данные
     test_user = UserDBModel(
-        id="test_id",
+        id=f'{uuid.uuid4()}',
         email=DataGenerator.generate_random_email(),
         full_name=DataGenerator.generate_random_name(),
         password=DataGenerator.generate_random_password(),
@@ -264,3 +285,37 @@ def db_session():
     session.delete(test_user)  # Удаляем тестовые данные
     session.commit()  # сохраняем изменения для всех остальных подключений
     session.close()  # завершем сессию (отключаемся от базы данных)
+
+
+@pytest.fixture
+def delay_between_retries():
+    time.sleep(2)  # Задержка в 2 секунды\ это не обязательно но
+    yield          # нужно понимать что такая возможность имеется
+
+
+# Браузер запускается один раз для всей сессии
+
+@pytest.fixture(scope='session')
+def browser(playwright):
+    # headless=True для CI/CD, headless=False для локальной разработки
+    browser = playwright.chromium.launch(headless=False)
+    yield browser  # yield возвращает значение фикстуры, выполнение теста продолжится после yield
+    browser.close()  # Браузер закрывается после завершения всех тестов
+
+
+@pytest.fixture(scope='function')  # Контекст создается для каждого теста
+def context(browser):
+    context = browser.new_context()
+    context.tracing.start(screenshots=True, snapshots=True,
+                          sources=True)  # Трассировка для отладки
+    # Установка таймаута по умолчанию
+    context.set_default_timeout(DEFAULT_UI_TIMEOUT)
+    yield context  # yield возвращает значение фикстуры, выполнение теста продолжится после yield
+    context.close()  # Контекст закрывается после завершения теста
+
+
+@pytest.fixture(scope="function")  # Страница создается для каждого теста
+def page(context):
+    page = context.new_page()
+    yield page  # yield возвращает значение фикстуры, выполнение теста продолжится после yield
+    page.close()  # Страница закрывается после завершения теста

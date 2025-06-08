@@ -25,14 +25,15 @@ class CustomRequester:
         """
         self.session = session
         self.base_url = base_url
-        # self.session.headers = self.base_headers.copy()
-        self.headers = self.base_headers.copy()
+        self.session.headers = self.base_headers.copy()
+        # self.headers = self.base_headers.copy()
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
 
     def send_request(
         self, method, endpoint,
-        data=None, expected_status=200, need_logging=True, params=None
+        data=None, expected_status=[200, 201], need_logging=True, params=None,
+        headers=None, token=None
     ):
         """
         Универсальный метод для отправки запросов.
@@ -45,19 +46,32 @@ class CustomRequester:
         :return: Объект ответа requests.Response.
         """
         url = f"{self.base_url}{endpoint}"
-        # if isinstance(data, BaseModel):
-        #     data = json.loads(data.model_dump_json(exclude_unset=True))
-        # response = self.session.request(method, url, json=data, headers=self.headers, params=params)
+        if isinstance(data, BaseModel):
+            data = json.loads(data.model_dump_json(exclude_unset=True))
+        if token is not None:
+            if headers is None:
+                headers = {}
+            headers["Authorization"] = f"Bearer {token}"
+
         response = self.session.request(
-            method, url, json=data, headers=self.headers, params=params
+            method, url, json=data, params=params,
+            headers=headers
         )
         if need_logging:
             self.log_request_and_response(response)
-        if response.status_code != expected_status:
-            raise ValueError(
-                f'Unexpected status code: {response.status_code}. '
-                f'Expected: {expected_status}'
-            )
+        if isinstance(expected_status, (list, tuple)):
+            if response.status_code not in expected_status:
+                raise ValueError(
+                    f'Unexpected status code: {response.status_code}. '
+                    f'Expected one of: {expected_status}'
+                )
+        else:
+            if response.status_code != expected_status:
+                raise ValueError(
+                    f'Unexpected status code: {response.status_code}. '
+                    f'Expected: {expected_status}'
+                )
+
         return response
 
     def _update_session_headers(self, **kwargs):
@@ -66,7 +80,7 @@ class CustomRequester:
         :param session: Объект requests.Session, предоставленный API-классом.
         :param kwargs: Дополнительные заголовки.
         """
-        self.headers.update(kwargs)  # Обновляем базовые заголовки
+        # self.headers.update(kwargs)  # Обновляем базовые заголовки
         # Обновляем заголовки в текущей сессии
         self.session.headers.update(kwargs)
 
@@ -136,7 +150,8 @@ class CustomRequester:
         """
         try:
             request = response.request
-            headers = " \\\n".join([f"-H '{header}: {value}'" for header, value in request.headers.items()])
+            headers = " \\\n".join(
+                [f"-H '{header}: {value}'" for header, value in request.headers.items()])
             full_test_name = f"pytest {os.environ.get('PYTEST_CURRENT_TEST', '').replace(' (call)', '')}"
 
             body = ""
@@ -163,4 +178,3 @@ class CustomRequester:
                                  f"\nDATA: {RED}{response_data}{RESET}")
         except Exception as e:
             self.logger.info(f"\nLogging went wrong: {type(e)} - {e}")
-

@@ -1,5 +1,4 @@
 from constants import USER_BASE_URL
-
 from custom_requester.custom_requester import CustomRequester
 
 
@@ -35,7 +34,6 @@ class UserAPI(CustomRequester):
             data=user_data,
             expected_status=expected_status
         )
-    
 
     # def get_user_info(self, user_id, expected_status=200):
     #     """
